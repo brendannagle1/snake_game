@@ -51,22 +51,23 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 		"E":moveRight,
 		"W":moveLeft
 	}
-	keyboard.add_hotkey("up",	lambda: detect_keypress("N", game_status))
-	keyboard.add_hotkey("down",	lambda: detect_keypress("S", game_status))
-	keyboard.add_hotkey("left",	lambda: detect_keypress("W", game_status))
-	keyboard.add_hotkey("right",lambda: detect_keypress("E", game_status))
-	keyboard.add_hotkey("q",	lambda: sys.exit())
+
+	keyboard.add_hotkey("up",		lambda: detect_keypress("N", game_status))
+	keyboard.add_hotkey("down",		lambda: detect_keypress("S", game_status))
+	keyboard.add_hotkey("left",		lambda: detect_keypress("W", game_status))
+	keyboard.add_hotkey("right",	lambda: detect_keypress("E", game_status))
+	keyboard.add_hotkey("shift+q",	lambda: detect_keypress("Q", game_status, debug=True))
 	
 	#main game loop
 	ts_last = perf_counter()
-	while game_status:
+	while game_status.is_running:
 		direction = game_status.direction
 		#detect wall collisions and reset
 		if move_dict[direction](current_position,limits) is None:
 			current_position, sn_pos_pts, sn_len = reset()
 			game_status.direction = "E"
 			tar_pos = gentarget(limits)
-			# moveRight()
+		#detect target collisions
 		if tar_pos == current_position:
 			if debug:
 				print(f'Target Found')
@@ -84,6 +85,8 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 				print("reset")
 		if debug:
 			ti = perf_counter()
+		
+		#render image and display
 		img = grid.copy()
 		img = renderpoints(sn_pos_pts,px_per_segment,img,ORANGE)
 		renderpoint(tar_pos,px_per_segment,img,WHITE)
@@ -99,9 +102,12 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 
 def detect_keypress(direction_in, game_status, debug=False):
 	# global direction
-	game_status.direction = direction_in
+	if direction_in != "Q":
+		game_status.direction = direction_in
+	else:
+		game_status.is_running = False 
 	if debug:
-		print("Direction Press: ",direction)
+		print("Direction Press: ",direction_in)
 
 # def listen_and_direct():
 # 	# global direction, running
