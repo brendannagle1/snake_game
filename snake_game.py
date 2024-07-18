@@ -24,8 +24,7 @@ def reset():
 	current_position = [0, 0]
 	sn_pos_pts = [(0,0)]
 	sn_len = 1
-	return current_position, sn_pos_pts, sn_len
-	
+	return current_position, sn_pos_pts, sn_len	
 
 def move_and_render(limits,grid, px_per_segment, debug=False):
 	# global direction
@@ -108,51 +107,6 @@ def detect_keypress(direction_in, game_status, debug=False):
 		game_status.is_running = False 
 	if debug:
 		print("Direction Press: ",direction_in)
-
-# def listen_and_direct():
-# 	# global direction, running
-# 	while True:
-# 	# print(f'Distance from zero: , {current_position}')
-# 		key = ord(getch())
-# 		print(key), time.sleep(1)
-# 		if key == 27: #ESC
-# 			running = 1
-# 			break
-# 		elif key == 13: #Enter
-# 			print('selected')
-# 		elif key == 32: #Space
-# 			print('jump')
-# 		elif key == 224: #Special keys (arrows, f keys, ins, del, etc.)
-# 			key = ord(getch())
-# 			if key == 80: #Down arrow
-# 				print('down')
-# 				# moveDown()
-# 				if direction =="N":
-# 					pass
-# 				else:
-# 					direction = "S"
-# 			elif key == 72: #Up arrow
-# 				print('up')
-# 				# moveUp()
-# 				if direction =="S":
-# 					pass 
-# 				else:
-# 					direction = "N"
-# 			elif key == 75: #Left arrow
-# 				print('left')
-# 				# moveLeft()
-# 				if direction =="E":
-# 					pass
-# 				else:
-# 					direction = "W"
-# 			elif key == 77: #Right arrow
-# 				print('right')
-# 				# moveRight()
-# 				if direction =="W":
-# 					pass
-# 				else:
-# 					direction = "E"
-# 		# time.sleep(0.1)
 
 def enter_point(sn_pos_pts,sn_len, current_position, debug=False):
 	if len(sn_pos_pts) == sn_len:
@@ -258,45 +212,18 @@ def moveDown(current_position, limits):
 		direction = 'S'
 		return direction, current_position
 
-# def print_direction():
-# 	global direction
-# 	while True:
-# 		print(direction)
-# 		time.sleep(1)
-
-
 def main():
-	# global direction
-	# keyboard.add_hotkey("esc", sys.exit)
-	# direction = "E"
-	# keyboard.add_hotkey("up",lambda: detect_keypress("N"))
-	# keyboard.add_hotkey("down",lambda: detect_keypress("S"))
-	# keyboard.add_hotkey("left",lambda: detect_keypress("W"))
-	# keyboard.add_hotkey("right",lambda: detect_keypress("E"))
-	# keyboard.add_hotkey("right",lambda: detect_keypress("Q"))
 
-	current_position = [0,0]
-	tar_pos = [0,0]
 	min_x = 0
 	min_y = 0
 	max_x = 30
 	max_y = 30
 	px_per_segment = 25
-	sn_len = 1
-	sn_pos_pts = [(0,0)]
-	running = 0
 
 	limits = [min_x,max_x,min_y,max_y]
-
 	# tar_pos = gentarget(limits)
 	grid = rendergrid(max_x,max_y,px_per_segment)
 	move_and_render(limits, grid, px_per_segment)
-	print("reacherd")
-	# t1 = threading.Thread(target=listen_and_direct, args=()) 
-	# t2 = threading.Thread(target=move_and_render, args=()) 
-	# t1.start()
-	# t2.start()
-	
 
 if __name__ == '__main__':
 # Create two threads as follows
