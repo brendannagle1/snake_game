@@ -6,73 +6,74 @@ import cv2 as cv
 import numpy as np
 import threading
 import time
-
-direction = "E"
-pos = [0,0]
-tar_pos = [0,0]
-min_x = 0
-min_y = 0
-max_x = 30
-max_y = 30
-dim_mult = 25
-sn_len = 1
-sn_pos_pts = [(0,0)]
-end = 0
-
-white =(255,255,255)
-orange = (0,160,255)
+from time import perf_counter
 
 def reset():
-	global pos, sn_pos_pts, sn_len
-	pos = [0, 0]
+	current_position = [0, 0]
 	sn_pos_pts = [(0,0)]
 	sn_len = 1
+	return current_position, sn_pos_pts, sn_len
+	
 
-def move_and_render():
-	global direction, tar_pos, grid, dim_mult,sn_pos_pts,white,orange,sn_len, end
-	while True:
-		if end == 1:
-			break
+def move_and_render(limits,grid, px_per_segment, debug=False):
+	# global direction, tar_pos, grid, px_per_segment,sn_pos_pts,WHITE,ORANGE,sn_len, running
+	WHITE =(255,255,255)
+	ORANGE = (0,160,255)
+	
+	min_x,max_x,min_y,max_y = limits
+	
+	running = True
+	direction = "E"
+	current_position = [0, 0]
+	sn_pos_pts = [(0,0)]
+	tar_pos = gentarget(limits)
+	sn_len = 1
+	target_fps = 5
 
-		if direction == "N":
-			fup()
-		elif direction == "S":
-			fdown()
-		elif direction =="E":
-			fright()
-		elif direction =="W":
-			fleft()
-
-		if tar_pos == pos:
-			print(f'Target Found')
-			while tar_pos == pos or pos in sn_pos_pts:
-				tar_pos = gentarget(min_x,max_x,min_y,max_y)
-			print(f'new {tar_pos}')
+	move_dict = {
+		"N":moveUp,
+		"S":moveDown,
+		"E":moveRight,
+		"W":moveLeft
+	}
+	#main game loop
+	ts_last = perf_counter()
+	while running:
+		move_dict[direction](current_position,limits)
+		if tar_pos == current_position:
+			if debug:
+				print(f'Target Found')
+			while tar_pos == current_position or current_position in sn_pos_pts:
+				tar_pos = gentarget(limits)
+			if debug:
+				print(f'new {tar_pos}')
 			sn_len += 1
-		enter_point()
+		sn_pos_pts, sn_len, current_position = enter_point(sn_pos_pts,\
+													sn_len, current_position)
 
 		if len(sn_pos_pts)>4:
-			if pos in sn_pos_pts[:-1]:
+			if current_position in sn_pos_pts[:-1]:
 				reset()
 				print("reset")
 
 		img = grid.copy()
-		# renderpoint(pos,dim_mult,img,orange)
-		img = renderpoints(sn_pos_pts,dim_mult,img,orange)
-		renderpoint(tar_pos,dim_mult,img,white)
-		cv.imshow('image',img)
-		cv.namedWindow('image',cv.WINDOW_NORMAL)
+		# renderpoint(current_position,px_per_segment,img,ORANGE)
+		img = renderpoints(sn_pos_pts,px_per_segment,img,ORANGE)
+		renderpoint(tar_pos,px_per_segment,img,WHITE)
+		cv.imshow('Snake Game - Press Q to exit',img)
+		cv.namedWindow('Snake Game - Press Q to exit',cv.WINDOW_NORMAL)
 		cv.waitKey(1)
 		t_delay = (0.4*10/(10+sn_len))
 		time.sleep(t_delay)
 
 def listen_and_direct():
-	global direction, end
+	# global direction, running
 	while True:
-	# print(f'Distance from zero: , {pos}')
+	# print(f'Distance from zero: , {current_position}')
 		key = ord(getch())
+		print(key), time.sleep(1)
 		if key == 27: #ESC
-			end = 1
+			running = 1
 			break
 		elif key == 13: #Enter
 			print('selected')
@@ -82,133 +83,168 @@ def listen_and_direct():
 			key = ord(getch())
 			if key == 80: #Down arrow
 				print('down')
-				# fdown()
+				# moveDown()
 				if direction =="N":
 					pass
 				else:
 					direction = "S"
 			elif key == 72: #Up arrow
 				print('up')
-				# fup()
+				# moveUp()
 				if direction =="S":
 					pass 
 				else:
 					direction = "N"
 			elif key == 75: #Left arrow
 				print('left')
-				# fleft()
+				# moveLeft()
 				if direction =="E":
 					pass
 				else:
 					direction = "W"
 			elif key == 77: #Right arrow
 				print('right')
-				# fright()
+				# moveRight()
 				if direction =="W":
 					pass
 				else:
 					direction = "E"
 		# time.sleep(0.1)
 
-def enter_point():
-	global pos, sn_len, sn_pos_pts
+def enter_point(sn_pos_pts,sn_len, current_position, debug=False):
+	# global current_position, sn_len, sn_pos_pts
 	if len(sn_pos_pts) == sn_len:
-		b = [deepcopy(pos[0]),deepcopy(pos[1])]
+		b = [deepcopy(current_position[0]),deepcopy(current_position[1])]
 		sn_pos_pts.pop(0)
-		print(b)
+		if debug:
+			print(b)
 		sn_pos_pts.append(b)
 
 	elif len(sn_pos_pts) < sn_len:
-		b = [deepcopy(pos[0]),deepcopy(pos[1])]
+		b = [deepcopy(current_position[0]),deepcopy(current_position[1])]
 		sn_pos_pts.append(b)
 	
 	else:
 		pass
-	print (sn_pos_pts)
+	if debug:
+		print(sn_pos_pts)
 
-def rendergrid(maxx,maxy,mult):
-	x = int((1+maxx)*mult)
-	y = int((1+maxy)*mult)
+	return sn_pos_pts, sn_len, current_position
+
+def rendergrid(max_x,max_y,px_per_segment):
+	x = int((1+max_x)*px_per_segment)
+	y = int((1+max_y)*px_per_segment)
 	grid = np.zeros((y,x,3), np.uint8)
 	return grid
 
-def renderpoints(list,mult,grid,color):
-	for pos in list:
+def renderpoints(list,px_per_segment,grid,color):
+	for current_position in list:
 		img = grid
-		x = int(mult*pos[1])
-		y = int(mult*pos[0])
+		x = int(px_per_segment*current_position[1])
+		y = int(px_per_segment*current_position[0])
 		intpos = (y,x)
-		x2 = x + mult
-		y2 = y + mult
+		x2 = x + px_per_segment
+		y2 = y + px_per_segment
 
 		finpos = (y2,x2)
 		img = cv.rectangle(img,(intpos),(finpos),color,-1)
 	return img
 
-def renderpoint(pos,mult,grid,color):
-	x = int(mult*pos[1])
-	y = int(mult*pos[0])
+def renderpoint(current_position,px_per_segment,grid,color):
+	x = int(px_per_segment*current_position[1])
+	y = int(px_per_segment*current_position[0])
 	intpos = (y,x)
-	x2 = x + mult
-	y2 = y + mult
+	x2 = x + px_per_segment
+	y2 = y + px_per_segment
 
 	finpos = (y2,x2)
 	cv.rectangle(grid,(intpos),(finpos),color,-1)
 
-def gentarget(minx,maxx,miny,maxy):
-	x = random.randint(minx, maxx)
-	y = random.randint(miny, maxy)
-	new_tar = [x,y]
+def gentarget(limits, existing_positions=None):
+	#add a check against current positions
+	min_x,max_x,min_y,max_y = limits
+	while True:
+		x = random.randint(min_x, max_x)
+		y = random.randint(min_y, max_y)
+		new_tar = [x,y]
+		if existing_positions is None:
+			break
+		elif new_tar in existing_positions:
+			pass
+		else:
+			break
+
 	return new_tar
 
-def fright():
-	global pos,direction, sn_len,sn_pos_pts
-	
-	if pos[0] == max_x:
-		reset()
+def moveRight(current_position,limits):
+	# global current_position,direction, sn_len,sn_pos_pts
+	min_x,max_x,min_y,max_y = limits
+	if current_position[0] == max_x:
+		return None
 	else:
-		pos[0] += 1
+		current_position[0] += 1
 		direction = 'E'
+		return direction, current_position
 
-def fleft():
-	global pos,direction,sn_len,sn_pos_pts
-	if pos[0] == min_x:
-		reset()
+def moveLeft(current_position, min_x):
+	# global current_position,direction,sn_len,sn_pos_pts
+	if current_position[0] == min_x:
+		return None
 	else:
-		pos[0] -= 1
+		current_position[0] -= 1
 		direction = 'W'
+		return direction, current_position
 
-def fup():
-	global pos,direction,sn_len,sn_pos_pts
-	if pos[1] == min_y:
-		reset()
+def moveUp(current_position, min_y):
+	# global current_position,direction,sn_len,sn_pos_pts
+	if current_position[1] == min_y:
+		return None
 	else:
-		pos[1] -= 1
+		current_position[1] -= 1
 		direction = 'N'
+		return direction, current_position
 
-def fdown():
-	global pos,direction,sn_len,sn_pos_pts
-	if pos[1] == max_y:
-		reset()
+def moveDown(current_position, max_y):
+	# global current_position,direction,sn_len,sn_pos_pts
+	if current_position[1] == max_y:
+		return None
 	else:
-		pos[1] += 1
+		current_position[1] += 1
 		direction = 'S'
+		return direction, current_position
 
-def print_direction():
-	global direction
-	while True:
-		print(direction)
-		time.sleep(1)
+# def print_direction():
+# 	global direction
+# 	while True:
+# 		print(direction)
+# 		time.sleep(1)
 
-tar_pos = gentarget(min_x,max_x,min_y,max_y)
 
-grid = rendergrid(max_x,max_y,dim_mult)
+def main():
+	direction = "E"
+	current_position = [0,0]
+	tar_pos = [0,0]
+	min_x = 0
+	min_y = 0
+	max_x = 30
+	max_y = 30
+	px_per_segment = 25
+	sn_len = 1
+	sn_pos_pts = [(0,0)]
+	running = 0
+
+	limits = [min_x,max_x,min_y,max_y]
+
+	# tar_pos = gentarget(limits)
+	grid = rendergrid(max_x,max_y,px_per_segment)
+	move_and_render(limits, grid, px_per_segment)
+	print("reacherd")
+	# t1 = threading.Thread(target=listen_and_direct, args=()) 
+	# t2 = threading.Thread(target=move_and_render, args=()) 
+	# t1.start()
+	# t2.start()
+	
 
 if __name__ == '__main__':
-
 # Create two threads as follows
-	t1 = threading.Thread(target=listen_and_direct, args=()) 
-	t2 = threading.Thread(target=move_and_render, args=()) 
-	t1.start()
-	t2.start()
-	
+	main()
