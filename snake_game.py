@@ -10,8 +10,6 @@ from time import perf_counter
 import keyboard
 import sys
 
-direction = "E"
-
 class GameStatus:
 	def __init__(self):
 		self.is_running = True
@@ -99,12 +97,26 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 		t_delay = (0.4*10/(10+sn_len))
 		time.sleep(t_delay)
 
-def detect_keypress(direction_in, game_status, debug=False):
-	# global direction
-	if direction_in != "Q":
+def valid_direction_change(current_drx, desired_drx):
+	# prevent doubling back
+	ignored_direction_changes = {
+		"N":["N", "S"],
+		"S":["N", "S"],
+		"E":["E", "W"],
+		"W":["E", "W"]}
+	if desired_drx not in ignored_direction_changes[current_drx]:
+		return True
+	else: 
+		return False
+
+def detect_keypress(direction_in, game_status,  debug=False):
+	
+	if direction_in == "Q": 
+		game_status.is_running = False 
+	elif valid_direction_change(game_status.direction, direction_in):
 		game_status.direction = direction_in
 	else:
-		game_status.is_running = False 
+		pass
 	if debug:
 		print("Direction Press: ",direction_in)
 
@@ -173,7 +185,6 @@ def gentarget(limits, existing_positions=None):
 	return new_tar
 
 def moveRight(current_position,limits):
-	# global current_position,direction, sn_len,sn_pos_pts
 	min_x,max_x,min_y,max_y = limits
 	if current_position[0] == max_x:
 		return None
@@ -184,7 +195,6 @@ def moveRight(current_position,limits):
 
 def moveLeft(current_position, limits):
 	min_x,max_x,min_y,max_y = limits
-	# global current_position,direction,sn_len,sn_pos_pts
 	if current_position[0] == min_x:
 		return None
 	else:
@@ -194,7 +204,6 @@ def moveLeft(current_position, limits):
 
 def moveUp(current_position, limits):
 	min_x,max_x,min_y,max_y = limits
-	# global current_position,direction,sn_len,sn_pos_pts
 	if current_position[1] == min_y:
 		return None
 	else:
@@ -204,7 +213,6 @@ def moveUp(current_position, limits):
 
 def moveDown(current_position, limits):
 	min_x,max_x,min_y,max_y = limits
-	# global current_position,direction,sn_len,sn_pos_pts
 	if current_position[1] == max_y:
 		return None
 	else:
@@ -216,15 +224,13 @@ def main():
 
 	min_x = 0
 	min_y = 0
-	max_x = 30
-	max_y = 30
+	max_x = 10
+	max_y = 10
 	px_per_segment = 25
 
 	limits = [min_x,max_x,min_y,max_y]
-	# tar_pos = gentarget(limits)
 	grid = rendergrid(max_x,max_y,px_per_segment)
 	move_and_render(limits, grid, px_per_segment)
 
 if __name__ == '__main__':
-# Create two threads as follows
 	main()
