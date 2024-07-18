@@ -40,7 +40,8 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 	sn_pos_pts = [(0,0)]
 	tar_pos = gentarget(limits)
 	sn_len = 1
-	target_fps = 5
+	img = grid.copy()
+	# target_fps = 5
 
 	move_dict = {
 		"N":moveUp,
@@ -59,43 +60,49 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 	ts_last = perf_counter()
 	while game_status.is_running:
 		direction = game_status.direction
-		#detect wall collisions and reset
-		if move_dict[direction](current_position,limits) is None:
-			current_position, sn_pos_pts, sn_len = reset()
-			game_status.direction = "E"
-			tar_pos = gentarget(limits)
-		#detect target collisions
-		if tar_pos == current_position:
-			if debug:
-				print(f'Target Found')
-			while tar_pos == current_position or current_position in sn_pos_pts:
-				tar_pos = gentarget(limits,sn_pos_pts)
-			if debug:
-				print(f'new {tar_pos}')
-			sn_len += 1
-		sn_pos_pts, sn_len, current_position = enter_point(sn_pos_pts,\
-													sn_len, current_position)
-		#detect self collisions
-		if len(sn_pos_pts)>4:
-			if current_position in sn_pos_pts[:-1]:
-				current_position, sn_pos_pts, sn_len = reset()
-				print("reset")
-		if debug:
-			ti = perf_counter()
+		ts_current = perf_counter()
+		t_delay = (0.4*10/(10+sn_len))
 		
-		#render image and display
-		img = grid.copy()
-		img = renderpoints(sn_pos_pts,px_per_segment,img,ORANGE)
-		renderpoint(tar_pos,px_per_segment,img,WHITE)
-		if debug:
-			tf = perf_counter()
-			print(f"Render Time: {tf -ti}")
+		#only move and render when timer trips 
+		if ts_current - ts_last > t_delay:
+			if move_dict[direction](current_position,limits) is None:
+				#detect wall collisions and reset
+				current_position, sn_pos_pts, sn_len = reset()
+				game_status.direction = "E"
+				tar_pos = gentarget(limits)
+			#detect target collisions
+			if tar_pos == current_position:
+				if debug:
+					print(f'Target Found')
+				while tar_pos == current_position or current_position in sn_pos_pts:
+					tar_pos = gentarget(limits,sn_pos_pts)
+				if debug:
+					print(f'new {tar_pos}')
+				sn_len += 1
+			sn_pos_pts, sn_len, current_position = enter_point(sn_pos_pts,\
+														sn_len, current_position)
+			#detect self collisions
+			if len(sn_pos_pts)>4:
+				if current_position in sn_pos_pts[:-1]:
+					current_position, sn_pos_pts, sn_len = reset()
+					print("reset")
+			
+			#render image and display
+			# t_delay = (0.4*10/(10+sn_len))
+		
+		#update img only on following step
+		if ts_current - ts_last >= t_delay:
+			img = grid.copy()
+			img = renderpoints(sn_pos_pts,px_per_segment,img,ORANGE)
+			renderpoint(tar_pos,px_per_segment,img,WHITE)
+			ts_last = ts_current
+
 		cv.imshow(WINDOW_NAME,img)
 		cv.namedWindow(WINDOW_NAME,cv.WINDOW_NORMAL)
 		cv.waitKey(1)
 
-		t_delay = (0.4*10/(10+sn_len))
-		time.sleep(t_delay)
+		# t_delay = (0.4*10/(10+sn_len))
+		# time.sleep(t_delay)
 
 def valid_direction_change(current_drx, desired_drx):
 	# prevent doubling back
