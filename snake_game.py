@@ -1,14 +1,11 @@
 
 from copy import deepcopy
-from msvcrt import getch
+# from msvcrt import getch
 import random
 import cv2 as cv
 import numpy as np
-# import threading
-import time
 from time import perf_counter
 import keyboard
-import sys
 
 class GameStatus:
 	def __init__(self):
@@ -28,8 +25,8 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 	# global direction
 	WHITE =(255,255,255)
 	ORANGE = (0,160,255)
-	WINDOW_NAME = 'Snake Game - Press Q to exit'
-	
+	window_name = 'Snake Game - Press Shift+Q to exit'
+
 	# min_x,max_x,min_y,max_y = limits
 	
 	game_status = GameStatus()
@@ -40,8 +37,11 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 	sn_pos_pts = [(0,0)]
 	tar_pos = gentarget(limits)
 	sn_len = 1
+	high_score = 1
 	img = grid.copy()
 	# target_fps = 5
+
+	
 
 	move_dict = {
 		"N":moveUp,
@@ -59,14 +59,18 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 	#main game loop
 	ts_last = perf_counter()
 	while game_status.is_running:
+		cv.setWindowTitle(window_name, f'Snake Game - SCORE: {sn_len} - HighScore {high_score} - Press Shift+Q to exit') 
 		direction = game_status.direction
 		ts_current = perf_counter()
 		t_delay = (0.4*10/(10+sn_len))
 		
 		#only move and render when timer trips 
 		if ts_current - ts_last > t_delay:
+			#progress game logic to next "Frame"
 			if move_dict[direction](current_position,limits) is None:
-				#detect wall collisions and reset
+				#detect wall collisions, set highscore, and reset 
+				# if sn_len>high_score:
+				# 	high_score = sn_len
 				current_position, sn_pos_pts, sn_len = reset()
 				game_status.direction = "E"
 				tar_pos = gentarget(limits)
@@ -81,28 +85,27 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 				sn_len += 1
 			sn_pos_pts, sn_len, current_position = enter_point(sn_pos_pts,\
 														sn_len, current_position)
-			#detect self collisions
+			#detect self collisions and set high score
 			if len(sn_pos_pts)>4:
 				if current_position in sn_pos_pts[:-1]:
+					# if sn_len>high_score:
+					# 	high_score = sn_len
 					current_position, sn_pos_pts, sn_len = reset()
 					print("reset")
-			
-			#render image and display
-			# t_delay = (0.4*10/(10+sn_len))
 		
 		#update img only on following step
 		if ts_current - ts_last >= t_delay:
+			if sn_len>high_score:
+				high_score = sn_len
+
 			img = grid.copy()
 			img = renderpoints(sn_pos_pts,px_per_segment,img,ORANGE)
 			renderpoint(tar_pos,px_per_segment,img,WHITE)
 			ts_last = ts_current
 
-		cv.imshow(WINDOW_NAME,img)
-		cv.namedWindow(WINDOW_NAME,cv.WINDOW_NORMAL)
+		cv.imshow(window_name,img)
+		cv.namedWindow(window_name,cv.WINDOW_NORMAL)
 		cv.waitKey(1)
-
-		# t_delay = (0.4*10/(10+sn_len))
-		# time.sleep(t_delay)
 
 def valid_direction_change(current_drx, desired_drx):
 	# prevent doubling back
@@ -117,7 +120,6 @@ def valid_direction_change(current_drx, desired_drx):
 		return False
 
 def detect_keypress(direction_in, game_status,  debug=False):
-	
 	if direction_in == "Q": 
 		game_status.is_running = False 
 	elif valid_direction_change(game_status.direction, direction_in):
@@ -228,12 +230,11 @@ def moveDown(current_position, limits):
 		return direction, current_position
 
 def main():
-
 	min_x = 0
 	min_y = 0
 	max_x = 10
 	max_y = 10
-	px_per_segment = 25
+	px_per_segment = 50
 
 	limits = [min_x,max_x,min_y,max_y]
 	grid = rendergrid(max_x,max_y,px_per_segment)
