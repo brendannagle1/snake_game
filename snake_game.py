@@ -12,6 +12,14 @@ import sys
 
 direction = "E"
 
+class GameStatus:
+	def __init__(self):
+		self.is_running = True
+		self.direction = "E"
+	
+	def __repr__(self):
+		return self.is_running
+
 def reset():
 	current_position = [0, 0]
 	sn_pos_pts = [(0,0)]
@@ -20,13 +28,15 @@ def reset():
 	
 
 def move_and_render(limits,grid, px_per_segment, debug=False):
-	# global direction, tar_pos, grid, px_per_segment,sn_pos_pts,WHITE,ORANGE,sn_len, running
+	# global direction
 	WHITE =(255,255,255)
 	ORANGE = (0,160,255)
 	WINDOW_NAME = 'Snake Game - Press Q to exit'
 	
-	min_x,max_x,min_y,max_y = limits
+	# min_x,max_x,min_y,max_y = limits
 	
+	game_status = GameStatus()
+
 	running = True
 
 	current_position = [0, 0]
@@ -41,31 +51,36 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 		"E":moveRight,
 		"W":moveLeft
 	}
-	keyboard.add_hotkey("up",lambda: detect_keypress("N"))
-	keyboard.add_hotkey("down",lambda: detect_keypress("S"))
-	keyboard.add_hotkey("left",lambda: detect_keypress("W"))
-	keyboard.add_hotkey("right",lambda: detect_keypress("E"))
-	# keyboard.add_hotkey("right",lambda: detect_keypress("Q"))
-
+	keyboard.add_hotkey("up",	lambda: detect_keypress("N", game_status))
+	keyboard.add_hotkey("down",	lambda: detect_keypress("S", game_status))
+	keyboard.add_hotkey("left",	lambda: detect_keypress("W", game_status))
+	keyboard.add_hotkey("right",lambda: detect_keypress("E", game_status))
+	keyboard.add_hotkey("q",	lambda: sys.exit())
+	
 	#main game loop
 	ts_last = perf_counter()
-	while running:
-		print("Global: ", direction)
-		move_dict[direction](current_position,limits)
+	while game_status:
+		direction = game_status.direction
+		#detect wall collisions and reset
+		if move_dict[direction](current_position,limits) is None:
+			current_position, sn_pos_pts, sn_len = reset()
+			game_status.direction = "E"
+			tar_pos = gentarget(limits)
+			# moveRight()
 		if tar_pos == current_position:
 			if debug:
 				print(f'Target Found')
 			while tar_pos == current_position or current_position in sn_pos_pts:
-				tar_pos = gentarget(limits)
+				tar_pos = gentarget(limits,sn_pos_pts)
 			if debug:
 				print(f'new {tar_pos}')
 			sn_len += 1
 		sn_pos_pts, sn_len, current_position = enter_point(sn_pos_pts,\
 													sn_len, current_position)
-
+		#detect self collisions
 		if len(sn_pos_pts)>4:
 			if current_position in sn_pos_pts[:-1]:
-				reset()
+				current_position, sn_pos_pts, sn_len = reset()
 				print("reset")
 		if debug:
 			ti = perf_counter()
@@ -82,10 +97,11 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 		t_delay = (0.4*10/(10+sn_len))
 		time.sleep(t_delay)
 
-def detect_keypress(direction_in):
-	global direction
-	direction = direction_in
-	print(direction)
+def detect_keypress(direction_in, game_status, debug=False):
+	# global direction
+	game_status.direction = direction_in
+	if debug:
+		print("Direction Press: ",direction)
 
 # def listen_and_direct():
 # 	# global direction, running
@@ -133,7 +149,6 @@ def detect_keypress(direction_in):
 # 		# time.sleep(0.1)
 
 def enter_point(sn_pos_pts,sn_len, current_position, debug=False):
-	# global current_position, sn_len, sn_pos_pts
 	if len(sn_pos_pts) == sn_len:
 		b = [deepcopy(current_position[0]),deepcopy(current_position[1])]
 		sn_pos_pts.pop(0)
@@ -245,17 +260,11 @@ def moveDown(current_position, limits):
 
 
 def main():
-	global direction
+	# global direction
 	# keyboard.add_hotkey("esc", sys.exit)
 	# direction = "E"
-	keyboard.add_hotkey("up",lambda: detect_keypress("N"))
-	keyboard.add_hotkey("down",lambda: detect_keypress("S"))
-	keyboard.add_hotkey("left",lambda: detect_keypress("W"))
-	keyboard.add_hotkey("right",lambda: detect_keypress("E"))
-	# keyboard.add_hotkey("right",lambda: detect_keypress("Q"))
-
-	# keyboard.add_hotkey("up", detect_keypress, args=(direction, "N"))
-	# keyboard.add_hotkey("down",detect_keypress("S"))
+	# keyboard.add_hotkey("up",lambda: detect_keypress("N"))
+	# keyboard.add_hotkey("down",lambda: detect_keypress("S"))
 	# keyboard.add_hotkey("left",lambda: detect_keypress("W"))
 	# keyboard.add_hotkey("right",lambda: detect_keypress("E"))
 	# keyboard.add_hotkey("right",lambda: detect_keypress("Q"))
