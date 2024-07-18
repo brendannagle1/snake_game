@@ -4,9 +4,13 @@ from msvcrt import getch
 import random
 import cv2 as cv
 import numpy as np
-import threading
+# import threading
 import time
 from time import perf_counter
+import keyboard
+import sys
+
+direction = "E"
 
 def reset():
 	current_position = [0, 0]
@@ -19,11 +23,12 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 	# global direction, tar_pos, grid, px_per_segment,sn_pos_pts,WHITE,ORANGE,sn_len, running
 	WHITE =(255,255,255)
 	ORANGE = (0,160,255)
+	WINDOW_NAME = 'Snake Game - Press Q to exit'
 	
 	min_x,max_x,min_y,max_y = limits
 	
 	running = True
-	direction = "E"
+
 	current_position = [0, 0]
 	sn_pos_pts = [(0,0)]
 	tar_pos = gentarget(limits)
@@ -36,9 +41,16 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 		"E":moveRight,
 		"W":moveLeft
 	}
+	keyboard.add_hotkey("up",lambda: detect_keypress("N"))
+	keyboard.add_hotkey("down",lambda: detect_keypress("S"))
+	keyboard.add_hotkey("left",lambda: detect_keypress("W"))
+	keyboard.add_hotkey("right",lambda: detect_keypress("E"))
+	# keyboard.add_hotkey("right",lambda: detect_keypress("Q"))
+
 	#main game loop
 	ts_last = perf_counter()
 	while running:
+		print("Global: ", direction)
 		move_dict[direction](current_position,limits)
 		if tar_pos == current_position:
 			if debug:
@@ -55,61 +67,70 @@ def move_and_render(limits,grid, px_per_segment, debug=False):
 			if current_position in sn_pos_pts[:-1]:
 				reset()
 				print("reset")
-
+		if debug:
+			ti = perf_counter()
 		img = grid.copy()
-		# renderpoint(current_position,px_per_segment,img,ORANGE)
 		img = renderpoints(sn_pos_pts,px_per_segment,img,ORANGE)
 		renderpoint(tar_pos,px_per_segment,img,WHITE)
-		cv.imshow('Snake Game - Press Q to exit',img)
-		cv.namedWindow('Snake Game - Press Q to exit',cv.WINDOW_NORMAL)
+		if debug:
+			tf = perf_counter()
+			print(f"Render Time: {tf -ti}")
+		cv.imshow(WINDOW_NAME,img)
+		cv.namedWindow(WINDOW_NAME,cv.WINDOW_NORMAL)
 		cv.waitKey(1)
+
 		t_delay = (0.4*10/(10+sn_len))
 		time.sleep(t_delay)
 
-def listen_and_direct():
-	# global direction, running
-	while True:
-	# print(f'Distance from zero: , {current_position}')
-		key = ord(getch())
-		print(key), time.sleep(1)
-		if key == 27: #ESC
-			running = 1
-			break
-		elif key == 13: #Enter
-			print('selected')
-		elif key == 32: #Space
-			print('jump')
-		elif key == 224: #Special keys (arrows, f keys, ins, del, etc.)
-			key = ord(getch())
-			if key == 80: #Down arrow
-				print('down')
-				# moveDown()
-				if direction =="N":
-					pass
-				else:
-					direction = "S"
-			elif key == 72: #Up arrow
-				print('up')
-				# moveUp()
-				if direction =="S":
-					pass 
-				else:
-					direction = "N"
-			elif key == 75: #Left arrow
-				print('left')
-				# moveLeft()
-				if direction =="E":
-					pass
-				else:
-					direction = "W"
-			elif key == 77: #Right arrow
-				print('right')
-				# moveRight()
-				if direction =="W":
-					pass
-				else:
-					direction = "E"
-		# time.sleep(0.1)
+def detect_keypress(direction_in):
+	global direction
+	direction = direction_in
+	print(direction)
+
+# def listen_and_direct():
+# 	# global direction, running
+# 	while True:
+# 	# print(f'Distance from zero: , {current_position}')
+# 		key = ord(getch())
+# 		print(key), time.sleep(1)
+# 		if key == 27: #ESC
+# 			running = 1
+# 			break
+# 		elif key == 13: #Enter
+# 			print('selected')
+# 		elif key == 32: #Space
+# 			print('jump')
+# 		elif key == 224: #Special keys (arrows, f keys, ins, del, etc.)
+# 			key = ord(getch())
+# 			if key == 80: #Down arrow
+# 				print('down')
+# 				# moveDown()
+# 				if direction =="N":
+# 					pass
+# 				else:
+# 					direction = "S"
+# 			elif key == 72: #Up arrow
+# 				print('up')
+# 				# moveUp()
+# 				if direction =="S":
+# 					pass 
+# 				else:
+# 					direction = "N"
+# 			elif key == 75: #Left arrow
+# 				print('left')
+# 				# moveLeft()
+# 				if direction =="E":
+# 					pass
+# 				else:
+# 					direction = "W"
+# 			elif key == 77: #Right arrow
+# 				print('right')
+# 				# moveRight()
+# 				if direction =="W":
+# 					pass
+# 				else:
+# 					direction = "E"
+# 		# time.sleep(0.1)
 
 def enter_point(sn_pos_pts,sn_len, current_position, debug=False):
 	# global current_position, sn_len, sn_pos_pts
@@ -186,7 +207,8 @@ def moveRight(current_position,limits):
 		direction = 'E'
 		return direction, current_position
 
-def moveLeft(current_position, min_x):
+def moveLeft(current_position, limits):
+	min_x,max_x,min_y,max_y = limits
 	# global current_position,direction,sn_len,sn_pos_pts
 	if current_position[0] == min_x:
 		return None
@@ -195,7 +217,8 @@ def moveLeft(current_position, min_x):
 		direction = 'W'
 		return direction, current_position
 
-def moveUp(current_position, min_y):
+def moveUp(current_position, limits):
+	min_x,max_x,min_y,max_y = limits
 	# global current_position,direction,sn_len,sn_pos_pts
 	if current_position[1] == min_y:
 		return None
@@ -204,7 +227,8 @@ def moveUp(current_position, min_y):
 		direction = 'N'
 		return direction, current_position
 
-def moveDown(current_position, max_y):
+def moveDown(current_position, limits):
+	min_x,max_x,min_y,max_y = limits
 	# global current_position,direction,sn_len,sn_pos_pts
 	if current_position[1] == max_y:
 		return None
@@ -221,7 +245,21 @@ def moveDown(current_position, max_y):
 
 
 def main():
-	direction = "E"
+	global direction
+	# keyboard.add_hotkey("esc", sys.exit)
+	# direction = "E"
+	keyboard.add_hotkey("up",lambda: detect_keypress("N"))
+	keyboard.add_hotkey("down",lambda: detect_keypress("S"))
+	keyboard.add_hotkey("left",lambda: detect_keypress("W"))
+	keyboard.add_hotkey("right",lambda: detect_keypress("E"))
+	# keyboard.add_hotkey("right",lambda: detect_keypress("Q"))
+
+	# keyboard.add_hotkey("up", detect_keypress, args=(direction, "N"))
+	# keyboard.add_hotkey("down",detect_keypress("S"))
+	# keyboard.add_hotkey("left",lambda: detect_keypress("W"))
+	# keyboard.add_hotkey("right",lambda: detect_keypress("E"))
+	# keyboard.add_hotkey("right",lambda: detect_keypress("Q"))
+
 	current_position = [0,0]
 	tar_pos = [0,0]
 	min_x = 0
